@@ -1,0 +1,43 @@
+name: Upstream updates
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-updates
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    if: github.repository == 'MrDemonWolf/moblin_cloud'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Mirror upstream and propose updates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/eerimoq/moblin_cloud.git
+          git fetch upstream main
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo "No upstream updates."
+            exit 0
+          fi
+          previous=$(git rev-parse --verify origin/codex/upstream-sync 2>/dev/null || true)
+          git push origin upstream/main:refs/heads/codex/upstream-sync
+          if [ "$(gh pr list --head codex/upstream-sync --base main --state open --json number --jq length)" = 0 ]; then
+            gh pr create --base main --head codex/upstream-sync --title "Merge upstream Moblin Cloud updates" --body "Review upstream changes and resolve any branding conflicts before merging. CI is dispatched explicitly because PRs created by GITHUB_TOKEN do not trigger pull_request workflows. This does not deploy production."
+          fi
+          if [ "$previous" != "$(git rev-parse upstream/main)" ]; then
+            gh workflow run ci.yml --ref codex/upstream-sync
+          fi
