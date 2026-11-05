@@ -1,19 +1,27 @@
 name: CI
 
+run-name: Verify ${{ inputs.source_ref }}
+
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact PR commit to verify
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   check:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref }}
+      - name: Record verified source
+        run: git rev-parse HEAD
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
