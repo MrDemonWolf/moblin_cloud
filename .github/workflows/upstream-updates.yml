@@ -25,6 +25,7 @@ jobs:
       - name: Mirror upstream and propose updates
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           git remote add upstream https://github.com/eerimoq/moblin_cloud.git
